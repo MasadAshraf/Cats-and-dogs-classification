@@ -1,36 +1,43 @@
 import streamlit as st
-import tensorflow as tf
-import numpy as np
 from PIL import Image
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+import numpy as np
 
-# Load the pre-trained model
-model = tf.keras.models.load_model('cats_and_dogs_small_2.h5')
+# Load the trained model
+model = load_model('cats_and_dogs_small_2.h5')
 
-# Function to preprocess the image
+# Function to preprocess the image before prediction
 def preprocess_image(image):
-    img = Image.open(image)
-    img = img.resize((150, 150))
-    img_array = np.array(img)
-    img_array = img_array / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    return img_array
+    image = image.resize((150, 150))
+    image = tf.keras.preprocessing.image.img_to_array(image)
+    image = np.expand_dims(image, axis=0)
+    image /= 255.0
+    return image
 
-# Streamlit app
-st.title('Cat and Dog Classification')
-st.write('Upload an image and let the model predict if it is a cat or a dog.')
-
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    st.image(uploaded_file, caption='Uploaded Image.', use_column_width=True)
-    st.write("Classifying...")
-
-    # Preprocess the image
-    input_data = preprocess_image(uploaded_file)
-
-    # Make predictions
-    prediction = model.predict(input_data)
-    if prediction[0][0] > 0.5:
-        st.write("Prediction: Cat")
+# Function to make predictions
+def predict(image):
+    processed_image = preprocess_image(image)
+    prediction = model.predict(processed_image)
+    print(prediction)
+    if prediction[0][0] < 0.5:
+        return "Cat"
     else:
-        st.write("Prediction: Dog")
+        return "Dog"
+
+def main():
+    st.title("Cat vs Dog Classifier")
+
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file)
+        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.write("")
+        st.write("Classifying...")
+
+        prediction = predict(image)
+        st.write(f"Prediction: {prediction}")
+
+if __name__ == "__main__":
+    main()
